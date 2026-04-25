@@ -24,20 +24,10 @@ RUN bench init \
   bench get-app erpnext https://github.com/frappe/erpnext --branch version-16 && \
   bench get-app mail https://github.com/Mehariwamlake/mail --branch develop && \
 
-  # Install apps to default site config
-  bench new-site site1.local \
-    --admin-password admin \
-    --mariadb-root-password admin \
-    --no-mariadb-socket && \
-
-  bench --site site1.local install-app erpnext && \
-  bench --site site1.local install-app mail && \
-
-  # Build assets
+  # ONLY build (no site creation here!)
   bench build && \
 
-  # Clean unnecessary files
-  find apps -mindepth 1 -name ".git" -type d | xargs rm -rf
+  rm -rf apps/*/.git
 
 # -------------------------
 # 2. RUNTIME STAGE

@@ -1,34 +1,26 @@
-ARG FRAPPE_BRANCH=version-16
-ARG FRAPPE_PATH=https://github.com/frappe/frappe
-
 FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    redis-server \
-    build-essential \
+    git curl redis-server build-essential \
     && rm -rf /var/lib/apt/lists/*
-
-USER root
 
 RUN pip install frappe-bench
 
-ARG FRAPPE_BRANCH
-ARG FRAPPE_PATH
+# 👉 CREATE USER (FIX FOR YOUR ERROR)
+RUN useradd -ms /bin/bash frappe && \
+    mkdir -p /home/frappe && \
+    chown -R frappe:frappe /home/frappe
 
 USER frappe
-
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+WORKDIR /home/frappe
 
 COPY images/layered/.tmp/apps.json /opt/frappe/apps.json
 
 RUN set -eux && \
-  rm -rf /home/frappe/frappe-bench && \
   bench init \
     --apps_path=/opt/frappe/apps.json \
-    --frappe-branch=${FRAPPE_BRANCH} \
-    --frappe-path=${FRAPPE_PATH} \
+    --frappe-branch=version-16 \
+    --frappe-path=https://github.com/frappe/frappe \
     --no-backups \
     --verbose \
     /home/frappe/frappe-bench

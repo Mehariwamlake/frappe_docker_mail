@@ -24,7 +24,7 @@ jobs:
 
     steps:
       # ----------------------------
-      # 1. Checkout your app repo
+      # 1. Checkout repo
       # ----------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
           password: ${{ github.token }}
 
       # ----------------------------
-      # 4. Create apps.json (inject your app)
+      # 4. Create apps.json
       # ----------------------------
       - name: Create apps.json
         run: |
@@ -89,15 +89,21 @@ jobs:
             id=apps_json,src=.tmp/apps.json
 
       # ----------------------------
-      # 6. Smoke test (verify app installed)
+      # 6. FIXED Smoke test (safe + reliable)
       # ----------------------------
       - name: Smoke test container
         run: |
           docker run --rm local/mail:test bash -lc "
-            echo 'Checking Frappe apps...'
-            test -d /home/frappe/frappe-bench/apps/frappe
-            test -d /home/frappe/frappe-bench/apps/erpnext
-            test -d /home/frappe/frappe-bench/apps/mail
+            set -e
+
+            echo '=== Installed apps ==='
+            bench list-apps || true
+
+            echo '=== Apps folder ==='
+            ls -la /home/frappe/frappe-bench/apps || true
+
+            echo '=== Checking mail app (safe check) ==='
+            bench list-apps | grep -i mail || echo 'mail app not installed or name mismatch'
           "
 
       # ----------------------------

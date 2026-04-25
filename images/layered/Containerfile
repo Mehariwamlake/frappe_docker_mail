@@ -21,8 +21,8 @@ RUN set -eux && \
   export NODE_OPTIONS="--max-old-space-size=2048" && \
   export YARN_ENABLE_IMMUTABLE_INSTALLS=false && \
   export CI=1 && \
+  export GIT_TERMINAL_PROMPT=0 && \
   bench init \
-    --yes \
     --apps_path=/opt/frappe/apps.json \
     --frappe-branch=${FRAPPE_BRANCH} \
     --frappe-path=${FRAPPE_PATH} \

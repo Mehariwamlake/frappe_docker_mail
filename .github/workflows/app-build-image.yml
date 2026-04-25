@@ -81,7 +81,7 @@ jobs:
           platforms: linux/amd64
           tags: local/mail:test
           secrets: |
-            apps_json=images/layered/.tmp/apps.json
+            apps_json=${{ github.workspace }}/images/layered/.tmp/apps.json
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=${{ env.FRAPPE_REF }}
@@ -130,7 +130,7 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.gitver.outputs.VERSION }}
 
           secrets: |
-            apps_json=images/layered/.tmp/apps.json
+            apps_json=${{ github.workspace }}/images/layered/.tmp/apps.json
 
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe

@@ -5,6 +5,7 @@ FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
 
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 ARG FRAPPE_BRANCH=version-16
+ARG APPS_JSON_BASE64
 
 ENV FRAPPE_BRANCH=${FRAPPE_BRANCH}
 ENV FRAPPE_PATH=${FRAPPE_PATH}
@@ -16,31 +17,49 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# IMPORTANT: ensure frappe owns workspace (fixes volume + permission issues)
+# ONLY ONE SOURCE (no COPY conflict)
+RUN mkdir -p /opt/frappe && \
+    if [ -n "$APPS_JSON_BASE64" ]; then \
+        echo "$APPS_JSON_BASE64" | base64 -d > /opt/frappe/apps.json; \
+    fi
+
 RUN mkdir -p /home/frappe/frappe-bench && \
     chown -R frappe:frappe /home/frappe
 
 USER frappe
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# COPY apps.json (no secrets)
-COPY .tmp/apps.json /opt/frappe/apps.json
-
 RUN set -eux && \
-  rm -rf /home/frappe/frappe-bench && \
-  export NODE_OPTIONS="--max-old-space-size=2048" && \
-  export YARN_ENABLE_IMMUTABLE_INSTALLS=false && \
-  export CI=1 && \
-  export GIT_TERMINAL_PROMPT=0 && \
-  bench init \
-    --apps_path=/opt/frappe/apps.json \
-    --frappe-branch=${FRAPPE_BRANCH} \
-    --frappe-path=${FRAPPE_PATH} \
-    --no-backups \
-    --skip-redis-config-generation \
-    --verbose \
-    /home/frappe/frappe-bench && \
-  cd /home/frappe/frappe-bench && \
-  echo "{}" > sites/common_site_config.json && \
-  find apps -mindepth 1 -path "*/.git" -exec rm -rf {} +
+    rm -rf /home/frappe/frappe-bench && \
+    export NODE_OPTIONS="--max-old-space-size=2048" && \
+    export CI=1 && \
+    export GIT_TERMINAL_PROMPT=0 && \
+    bench init \
+        --apps_path=/opt/frappe/apps.json \
+        --frappe-branch=${FRAPPE_BRANCH} \
+        --frappe-path=${FRAPPE_PATH} \
+        --no-backups \
+        --skip-redis-config-generation \
+        --verbose \
+        /home/frappe/frappe-bench && \
+    cd /home/frappe/frappe-bench && \
+    mkdir -p sites && \
+    echo "{}" > sites/common_site_config.json && \
+    find apps -mindepth 1 -path "*/.git" -exec rm -rf {} +
+
+# -------------------------
+# RUNTIME IMAGE
+# -------------------------
+FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS backend
+
+USER frappe
+WORKDIR /home/frappe/frappe-bench
+
+COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
+
+VOLUME [ \
+  "/home/frappe/frappe-bench/sites", \
+  "/home/frappe/frappe-bench/logs" \
+]
+
+CMD ["bench", "start"]

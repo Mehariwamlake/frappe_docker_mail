@@ -82,7 +82,7 @@ jobs:
           platforms: linux/amd64
           tags: local/mail:test
           secrets: |
-            apps_json=./apps.json
+            id=apps_json,src=apps.json
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=${{ env.FRAPPE_REF }}
@@ -117,8 +117,7 @@ jobs:
             echo "VERSION=" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set up apps.json secret
-        run: echo "apps_json=$(cat images/layered/.tmp/apps.json)" >> $GITHUB_ENV
+
       # ----------------------------
       # 7. Build & PUSH production image
       # ----------------------------
@@ -134,7 +133,7 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.gitver.outputs.VERSION }}
 
           secrets: |
-            apps_json=./apps.json
+            id=apps_json,src=apps.json
 
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe

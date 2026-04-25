@@ -12,12 +12,11 @@ RUN mkdir -p /opt/frappe && chown -R frappe:frappe /opt/frappe
 USER frappe
 RUN --mount=type=secret,id=apps_json \
     set -eux; \
-    mkdir -p /opt/frappe; \
-    cp /run/secrets/apps_json /opt/frappe/apps.json; \
-    cat /opt/frappe/apps.json; \
-    test -s /opt/frappe/apps.json; \
+    cp /run/secrets/apps_json /tmp/apps.json; \
+    test -s /tmp/apps.json; \
+    cat /tmp/apps.json; \
     \
-    bench init --apps_path=/opt/frappe/apps.json \
+    bench init --apps_path=/tmp/apps.json \
         --frappe-branch=${FRAPPE_BRANCH} \
         --frappe-path=${FRAPPE_PATH} \
         --no-procfile \
@@ -25,7 +24,7 @@ RUN --mount=type=secret,id=apps_json \
         --skip-redis-config-generation \
         --verbose \
         /home/frappe/frappe-bench
-
+        
 FROM ${FRAPPE_IMAGE_PREFIX}/base:${FRAPPE_BRANCH} AS backend
 
 USER frappe

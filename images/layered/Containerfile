@@ -16,8 +16,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # IMPORTANT: ensure frappe owns workspace (fixes volume + permission issues)
-RUN mkdir -p /opt/frappe /home/frappe/frappe-bench && \
-    chown -R frappe:frappe /home/frappe /opt/frappe
+RUN set -eux && \
+    mkdir -p /home/frappe/frappe-bench/sites && \
+    chown -R frappe:frappe /home/frappe/frappe-bench
+
 
 USER frappe
 

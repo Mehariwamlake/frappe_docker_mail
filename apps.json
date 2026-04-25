@@ -6,9 +6,5 @@
   {
     "url": "https://github.com/frappe/erpnext",
     "branch": "version-16"
-  },
-  {
-    "url": "https://github.com/Mehariwamlake/mail",
-    "branch": "develop"
   }
 ]

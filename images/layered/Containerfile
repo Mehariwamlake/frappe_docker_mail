@@ -7,16 +7,21 @@ ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 
 USER frappe
+
 RUN --mount=type=secret,id=apps_json \
     set -eux; \
-    mkdir -p /opt/frappe; \
-    cat /run/secrets/apps_json > /opt/frappe/apps.json; \
-    cat /opt/frappe/apps.json; \
     \
-    export APP_INSTALL_ARGS=""; \
-    if [ -s /opt/frappe/apps.json ]; then \
-        APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
+    echo "Loading apps.json..."; \
+    cat /run/secrets/apps_json > /tmp/apps.json; \
+    \
+    if [ ! -s /tmp/apps.json ]; then \
+        echo "apps.json is empty!" && exit 1; \
     fi; \
+    \
+    echo "Using apps.json:"; \
+    cat /tmp/apps.json; \
+    \
+    APP_INSTALL_ARGS="--apps_path=/tmp/apps.json"; \
     \
     bench init ${APP_INSTALL_ARGS} \
         --frappe-branch=${FRAPPE_BRANCH} \
@@ -25,11 +30,7 @@ RUN --mount=type=secret,id=apps_json \
         --no-backups \
         --skip-redis-config-generation \
         --verbose \
-        /home/frappe/frappe-bench && \
-    \
-    cd /home/frappe/frappe-bench && \
-    echo "{}" > sites/common_site_config.json && \
-    find apps -mindepth 1 -path "*/.git" | xargs rm -fr
+        /home/frappe/frappe-bench
 
 FROM ${FRAPPE_IMAGE_PREFIX}/base:${FRAPPE_BRANCH} AS backend
 

@@ -12,7 +12,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/mehariwamlake/techvision-mail
+  IMAGE_NAME: ghcr.io/mehariwamlake/mail
   FRAPPE_REF: version-16
   NODE_VERSION: 18.18.2
   PYTHON_VERSION: 3.11.6
@@ -63,7 +63,7 @@ jobs:
               "branch": "${{ env.FRAPPE_REF }}"
             },
             {
-              "url": "https://github.com/Mehariwamlake/techvision-mail",
+              "url": "https://github.com/Mehariwamlake/mail",
               "branch": "main"
             }
           ]
@@ -79,7 +79,7 @@ jobs:
           file: images/layered/Containerfile
           load: true
           platforms: linux/amd64
-          tags: local/techvision-mail:test
+          tags: local/mail:test
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=${{ env.FRAPPE_REF }}
@@ -93,7 +93,7 @@ jobs:
       # ----------------------------
       - name: Smoke test container
         run: |
-          docker run --rm local/techvision-mail:test bash -lc "
+          docker run --rm local/mail:test bash -lc "
             echo 'Checking Frappe apps...'
             test -d /home/frappe/frappe-bench/apps/frappe
             test -d /home/frappe/frappe-bench/apps/erpnext
@@ -120,4 +120,3 @@ jobs:
             NODE_VERSION=${{ env.NODE_VERSION }}
           secrets: |
             id=apps_json,src=.tmp/apps.json
-            

@@ -49,10 +49,9 @@ jobs:
       # 4. Create apps.json (FIXED LOCATION)
       # ----------------------------
       - name: Create apps.json
+        id: apps
         run: |
-          mkdir -p images/layered/.tmp
-
-          cat > images/layered/.tmp/apps.json <<EOF
+          JSON=$(cat <<EOF
           [
             {
               "url": "https://github.com/frappe/frappe",
@@ -68,6 +67,11 @@ jobs:
             }
           ]
           EOF
+          )
+
+          echo "APPS_JSON<<EOF" >> $GITHUB_OUTPUT
+          echo "$JSON" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       # ----------------------------
       # 5. Build test image (NO PUSH)
@@ -81,7 +85,7 @@ jobs:
           platforms: linux/amd64
           tags: local/mail:test
           secrets: |
-            apps_json=${{ github.workspace }}/images/layered/.tmp/apps.json
+            apps_json=${{ steps.apps.outputs.APPS_JSON }}
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=${{ env.FRAPPE_REF }}
@@ -130,7 +134,7 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.gitver.outputs.VERSION }}
 
           secrets: |
-            apps_json=${{ github.workspace }}/images/layered/.tmp/apps.json
+            apps_json=${{ steps.apps.outputs.APPS_JSON }}
 
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe

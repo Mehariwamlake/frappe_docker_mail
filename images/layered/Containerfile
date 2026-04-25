@@ -12,19 +12,17 @@ ENV FRAPPE_PATH=${FRAPPE_PATH}
 
 USER root
 
-RUN apt-get update && apt-get install -y \
-    jq \
-    git \
-    && rm -rf /var/lib/apt/lists/*
 
-# ONLY ONE SOURCE (no COPY conflict)
-RUN mkdir -p /opt/frappe && \
-    if [ -n "$APPS_JSON_BASE64" ]; then \
-        echo "$APPS_JSON_BASE64" | base64 -d > /opt/frappe/apps.json; \
-    fi
+RUN mkdir -p /opt/frappe
 
-RUN mkdir -p /home/frappe/frappe-bench && \
-    chown -R frappe:frappe /home/frappe
+ARG APPS_JSON_BASE64
+RUN if [ -n "$APPS_JSON_BASE64" ]; then \
+    echo "$APPS_JSON_BASE64" | base64 -d > /opt/frappe/apps.json; \
+  fi
+
+COPY .tmp/apps.json /opt/frappe/apps.json
+
+
 
 USER frappe
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]

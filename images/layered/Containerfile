@@ -30,6 +30,7 @@ RUN set -eux && \
     --frappe-branch=${FRAPPE_BRANCH} \
     --frappe-path=${FRAPPE_PATH} \
     --no-backups \
+    --skip-redis-config-generation \
     --verbose \
     /home/frappe/frappe-bench && \
   cd /home/frappe/frappe-bench && \

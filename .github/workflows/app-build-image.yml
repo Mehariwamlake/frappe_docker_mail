@@ -97,7 +97,7 @@ jobs:
             echo 'Checking Frappe apps...'
             test -d /home/frappe/frappe-bench/apps/frappe
             test -d /home/frappe/frappe-bench/apps/erpnext
-            test -d /home/frappe/frappe-bench/apps/techvision_mail
+            test -d /home/frappe/frappe-bench/apps/mail
           "
 
       # ----------------------------

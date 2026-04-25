@@ -17,13 +17,14 @@ RUN apt-get update && apt-get install -y \
 
 # IMPORTANT: ensure frappe owns workspace (fixes volume + permission issues)
 RUN mkdir -p /opt/frappe /home/frappe/frappe-bench && \
-    chown -R frappe:frappe /home/frappe /opt/frapp
+    chown -R frappe:frappe /home/frappe /opt/frappe
+
 USER frappe
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # COPY apps.json (no secrets)
-COPY --chown=frappe:frappe .tmp/apps.json /opt/frappe/apps.json
+COPY .tmp/apps.json /opt/frappe/apps.json
 
 RUN set -eux && \
   rm -rf /home/frappe/frappe-bench && \

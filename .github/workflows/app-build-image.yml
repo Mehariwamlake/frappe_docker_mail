@@ -48,9 +48,11 @@ jobs:
       # ----------------------------
       # 4. Create apps.json (FIXED LOCATION)
       # ----------------------------
-      - name: Create apps.json file
+      - name: Create apps.json
         run: |
-          cat > apps.json <<EOF
+          mkdir -p /opt/frappe/
+
+          cat > /opt/frappe/apps.json <<EOF
           [
             {
               "url": "https://github.com/frappe/frappe",
@@ -67,9 +69,6 @@ jobs:
           ]
           EOF
 
-          echo "Created apps.json:"
-          cat apps.json
-
       # ----------------------------
       # 5. Build test image (NO PUSH)
       # ----------------------------
@@ -81,8 +80,6 @@ jobs:
           load: true
           platforms: linux/amd64
           tags: local/mail:test
-          secrets: |
-            id=apps_json,src=apps.json
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=${{ env.FRAPPE_REF }}
@@ -107,17 +104,6 @@ jobs:
             bench list-apps | grep -i mail || echo 'mail not installed'
           "
 
-
-      - name: Extract version from git tag
-        id: gitver
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          else
-            echo "VERSION=" >> $GITHUB_OUTPUT
-          fi
-
-
       # ----------------------------
       # 7. Build & PUSH production image
       # ----------------------------
@@ -130,11 +116,7 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:${{ steps.gitver.outputs.VERSION }}
-
-          secrets: |
-            id=apps_json,src=apps.json
-
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=${{ env.FRAPPE_REF }}

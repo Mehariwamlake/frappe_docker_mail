@@ -1,39 +1,35 @@
-FROM python:3.14.2-slim
+ARG FRAPPE_BRANCH=version-16
+ARG FRAPPE_IMAGE_PREFIX=frappe
 
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    build-essential \
-    python3-dev \
-    libffi-dev \
-    libssl-dev \
-    libmariadb-dev \
-    libjpeg-dev \
-    libpng-dev \
-    git \
-    curl \
-    redis-server \
-    nodejs \
-    npm \
-    && rm -rf /var/lib/apt/lists/*
-RUN pip install -U flit-core setuptools wheel pip
+FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
 
-RUN pip install frappe-bench
+ARG FRAPPE_PATH=https://github.com/frappe/frappe
+ARG FRAPPE_BRANCH=version-16
 
-# 👉 CREATE USER (FIX FOR YOUR ERROR)
-RUN useradd -ms /bin/bash frappe && \
-    mkdir -p /home/frappe && \
-    chown -R frappe:frappe /home/frappe
+ENV FRAPPE_BRANCH=${FRAPPE_BRANCH}
+ENV FRAPPE_PATH=${FRAPPE_PATH}
 
 USER frappe
-WORKDIR /home/frappe
 
-COPY images/layered/.tmp/apps.json /opt/frappe/apps.json
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# COPY apps.json (no secrets)
+COPY .tmp/apps.json /opt/frappe/apps.json
 
 RUN set -eux && \
+  rm -rf /home/frappe/frappe-bench && \
+  export NODE_OPTIONS="--max-old-space-size=2048" && \
+  export YARN_ENABLE_IMMUTABLE_INSTALLS=false && \
+  export CI=1 && \
+  export GIT_TERMINAL_PROMPT=0 && \
   bench init \
     --apps_path=/opt/frappe/apps.json \
-    --frappe-branch=version-16 \
-    --frappe-path=https://github.com/frappe/frappe \
+    --frappe-branch=${FRAPPE_BRANCH} \
+    --frappe-path=${FRAPPE_PATH} \
     --no-backups \
+    --skip-redis-config-generation \
     --verbose \
-    /home/frappe/frappe-bench
+    /home/frappe/frappe-bench && \
+  cd /home/frappe/frappe-bench && \
+  echo "{}" > sites/common_site_config.json && \
+  find apps -mindepth 1 -path "*/.git" -exec rm -rf {} +

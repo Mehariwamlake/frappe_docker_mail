@@ -62,10 +62,7 @@ jobs:
               "url": "https://github.com/frappe/erpnext",
               "branch": "${{ env.FRAPPE_REF }}"
             },
-            {
-              "url": "https://github.com/Mehariwamlake/mail",
-              "branch": "develop"
-            }
+          
           ]
           EOF
 

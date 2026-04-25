@@ -12,7 +12,8 @@ USER frappe
 COPY apps.json /opt/frappe/apps.json
 
 # ✅ Build bench with apps
-RUN export NODE_OPTIONS="--max-old-space-size=2048" && \
+RUN rm -rf /home/frappe/frappe-bench && \
+  export NODE_OPTIONS="--max-old-space-size=2048" && \
   export YARN_ENABLE_IMMUTABLE_INSTALLS=false && \
   export APP_INSTALL_ARGS="" && \
   if [ -f /opt/frappe/apps.json ] && [ -s /opt/frappe/apps.json ]; then \
@@ -25,7 +26,10 @@ RUN export NODE_OPTIONS="--max-old-space-size=2048" && \
     --no-backups \
     --skip-redis-config-generation \
     --verbose \
-    /home/frappe/frappe-bench
+    /home/frappe/frappe-bench && \
+  cd /home/frappe/frappe-bench && \
+  echo "{}" > sites/common_site_config.json && \
+  find apps -mindepth 1 -path "*/.git" | xargs rm -fr
 
 # ----------------------------
 # Runtime image

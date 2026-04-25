@@ -63,7 +63,7 @@ jobs:
               "branch": "${{ env.FRAPPE_REF }}"
             },
             {
-              "url": "https://github.com/Mehariwamlake/mail",
+              "url": "https://github.com/Mehariwamlake/mail/tree/develop/mail",
               "branch": "main"
             }
           ]

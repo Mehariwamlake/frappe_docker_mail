@@ -4,6 +4,7 @@ ARG FRAPPE_IMAGE_PREFIX=frappe
 FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
 
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
+ARG FRAPPE_BRANCH=version-16
 
 ENV FRAPPE_BRANCH=${FRAPPE_BRANCH}
 ENV FRAPPE_PATH=${FRAPPE_PATH}
@@ -12,14 +13,16 @@ USER frappe
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# ✅ COPY apps.json instead of secrets
+# COPY apps.json (no secrets)
 COPY .tmp/apps.json /opt/frappe/apps.json
 
 RUN set -eux && \
   rm -rf /home/frappe/frappe-bench && \
   export NODE_OPTIONS="--max-old-space-size=2048" && \
   export YARN_ENABLE_IMMUTABLE_INSTALLS=false && \
+  export CI=1 && \
   bench init \
+    --yes \
     --apps_path=/opt/frappe/apps.json \
     --frappe-branch=${FRAPPE_BRANCH} \
     --frappe-path=${FRAPPE_PATH} \

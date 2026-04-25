@@ -6,8 +6,10 @@ FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
 ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 
-USER frappe
+USER root
+RUN mkdir -p /opt/frappe && chown -R frappe:frappe /opt/frappe
 
+USER frappe
 RUN --mount=type=secret,id=apps_json \
     set -eux; \
     mkdir -p /opt/frappe; \

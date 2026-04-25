@@ -1,15 +1,12 @@
 
 [
-  {
-    "url": "https://github.com/frappe/frappe",
-    "branch": "version-16"
-  },
+  
   {
     "url": "https://github.com/frappe/erpnext",
     "branch": "version-16"
   },
   {
-    "url": "https://github.com/Mehariwamlake/techvision-mail",
-    "branch": "main"
+    "url": "https://github.com/Mehariwamlake/mail",
+    "branch": "devlop"
   }
 ]

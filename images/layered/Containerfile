@@ -3,21 +3,17 @@ ARG FRAPPE_IMAGE_PREFIX=frappe
 
 FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
 
-ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 
 USER frappe
 
-# ✅ Copy apps.json directly (no secrets)
-COPY apps.json /opt/frappe/apps.json
-
-# ✅ Build bench with apps
+# IMPORTANT: apps.json must be passed at build time (not COPY)
 RUN rm -rf /home/frappe/frappe-bench && \
   export NODE_OPTIONS="--max-old-space-size=2048" && \
   export YARN_ENABLE_IMMUTABLE_INSTALLS=false && \
   export APP_INSTALL_ARGS="" && \
   if [ -f /opt/frappe/apps.json ] && [ -s /opt/frappe/apps.json ]; then \
-    export APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
+    APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
   fi && \
   bench init ${APP_INSTALL_ARGS} \
     --frappe-branch=${FRAPPE_BRANCH} \

@@ -4,22 +4,17 @@ ARG FRAPPE_IMAGE_PREFIX=frappe
 FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
 
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
-ARG FRAPPE_BRANCH=version-16
-
 ENV FRAPPE_BRANCH=${FRAPPE_BRANCH}
 ENV FRAPPE_PATH=${FRAPPE_PATH}
 
 USER frappe
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# COPY apps.json (no secrets)
 COPY .tmp/apps.json /opt/frappe/apps.json
 
 RUN set -eux && \
   rm -rf /home/frappe/frappe-bench && \
   export NODE_OPTIONS="--max-old-space-size=2048" && \
-  export YARN_ENABLE_IMMUTABLE_INSTALLS=false && \
   export CI=1 && \
   export GIT_TERMINAL_PROMPT=0 && \
   bench init \
@@ -27,9 +22,10 @@ RUN set -eux && \
     --frappe-branch=${FRAPPE_BRANCH} \
     --frappe-path=${FRAPPE_PATH} \
     --no-backups \
-    --skip-redis-config-generation \
     --verbose \
     /home/frappe/frappe-bench && \
   cd /home/frappe/frappe-bench && \
-  echo "{}" > sites/common_site_config.json && \
+  bench set-config -g redis_cache redis://redis-cache:6379 && \
+  bench set-config -g redis_queue redis://redis-queue:6379 && \
+  bench set-config -g redis_socketio redis://redis-queue:6379 && \
   find apps -mindepth 1 -path "*/.git" -exec rm -rf {} +

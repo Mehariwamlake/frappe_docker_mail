@@ -26,7 +26,6 @@ RUN set -eux && \
     --apps_path=/opt/frappe/apps.json \
     --frappe-branch=${FRAPPE_BRANCH} \
     --frappe-path=${FRAPPE_PATH} \
-    --no-procfile \
     --no-backups \
     --skip-redis-config-generation \
     --verbose \

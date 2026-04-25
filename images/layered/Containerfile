@@ -3,60 +3,50 @@ ARG FRAPPE_IMAGE_PREFIX=frappe
 
 FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
 
+ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
-
-ENV FRAPPE_BRANCH=${FRAPPE_BRANCH}
-ENV FRAPPE_PATH=${FRAPPE_PATH}
-
-USER root
-
-RUN apt-get update && apt-get install -y \
-    jq \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
-# IMPORTANT: ensure frappe owns workspace (fixes volume + permission issues)
-RUN set -eux && \
-    mkdir -p /home/frappe/frappe-bench/sites && \
-    chown -R frappe:frappe /home/frappe/frappe-bench
-
 
 USER frappe
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-# COPY apps.json (no secrets)
-COPY .tmp/apps.json /opt/frappe/apps.json
-
-RUN set -eux && \
-  rm -rf /home/frappe/frappe-bench && \
-  export NODE_OPTIONS="--max-old-space-size=2048" && \
-  export YARN_ENABLE_IMMUTABLE_INSTALLS=false && \
-  export CI=1 && \
-  export GIT_TERMINAL_PROMPT=0 && \
-  bench init \
-    --apps_path=/opt/frappe/apps.json \
+RUN --mount=type=secret,id=apps_json,target=/opt/frappe/apps.json,uid=1000,gid=1000 \
+  export APP_INSTALL_ARGS="" && \
+  if [ -f /opt/frappe/apps.json ] && [ -s /opt/frappe/apps.json ]; then \
+    export APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
+  fi && \
+  bench init ${APP_INSTALL_ARGS}\
     --frappe-branch=${FRAPPE_BRANCH} \
     --frappe-path=${FRAPPE_PATH} \
+    --no-procfile \
     --no-backups \
     --skip-redis-config-generation \
     --verbose \
     /home/frappe/frappe-bench && \
   cd /home/frappe/frappe-bench && \
   echo "{}" > sites/common_site_config.json && \
-  find apps -mindepth 1 -path "*/.git" -exec rm -rf {} +
+  find apps -mindepth 1 -path "*/.git" | xargs rm -fr
 
-
-FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS backend
+FROM ${FRAPPE_IMAGE_PREFIX}/base:${FRAPPE_BRANCH} AS backend
 
 USER frappe
-WORKDIR /home/frappe/frappe-bench
 
 COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
+
+WORKDIR /home/frappe/frappe-bench
 
 VOLUME [ \
   "/home/frappe/frappe-bench/sites", \
   "/home/frappe/frappe-bench/logs" \
 ]
 
-CMD ["bench", "start"]
+CMD [ \
+  "/home/frappe/frappe-bench/env/bin/gunicorn", \
+  "--chdir=/home/frappe/frappe-bench/sites", \
+  "--bind=0.0.0.0:8000", \
+  "--threads=4", \
+  "--workers=2", \
+  "--worker-class=gthread", \
+  "--worker-tmp-dir=/dev/shm", \
+  "--timeout=120", \
+  "--preload", \
+  "frappe.app:application" \
+]

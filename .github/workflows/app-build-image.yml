@@ -46,13 +46,13 @@ jobs:
           password: ${{ github.token }}
 
       # ----------------------------
-      # 4. Create apps.json
+      # 4. Create apps.json (FIXED LOCATION)
       # ----------------------------
       - name: Create apps.json
         run: |
-          mkdir -p .tmp
+          mkdir -p images/layered/.tmp
 
-          cat > .tmp/apps.json <<EOF
+          cat > images/layered/.tmp/apps.json <<EOF
           [
             {
               "url": "https://github.com/frappe/frappe",
@@ -61,8 +61,11 @@ jobs:
             {
               "url": "https://github.com/frappe/erpnext",
               "branch": "${{ env.FRAPPE_REF }}"
+            },
+            {
+              "url": "https://github.com/Mehariwamlake/mail",
+              "branch": "develop"
             }
-          
           ]
           EOF
 
@@ -82,11 +85,9 @@ jobs:
             FRAPPE_BRANCH=${{ env.FRAPPE_REF }}
             PYTHON_VERSION=${{ env.PYTHON_VERSION }}
             NODE_VERSION=${{ env.NODE_VERSION }}
-          secrets: |
-            id=apps_json,src=.tmp/apps.json
 
       # ----------------------------
-      # 6. FIXED Smoke test (safe + reliable)
+      # 6. Smoke test
       # ----------------------------
       - name: Smoke test container
         run: |
@@ -99,12 +100,12 @@ jobs:
             echo '=== Apps folder ==='
             ls -la /home/frappe/frappe-bench/apps || true
 
-            echo '=== Checking mail app (safe check) ==='
-            bench list-apps | grep -i mail || echo 'mail app not installed or name mismatch'
+            echo '=== Checking mail app ==='
+            bench list-apps | grep -i mail || echo 'mail not installed'
           "
 
       # ----------------------------
-      # 7. Build & PUSH final image
+      # 7. Build & PUSH production image
       # ----------------------------
       - name: Build and Push Production Image
         uses: docker/build-push-action@v7
@@ -121,5 +122,3 @@ jobs:
             FRAPPE_BRANCH=${{ env.FRAPPE_REF }}
             PYTHON_VERSION=${{ env.PYTHON_VERSION }}
             NODE_VERSION=${{ env.NODE_VERSION }}
-          secrets: |
-            id=apps_json,src=.tmp/apps.json

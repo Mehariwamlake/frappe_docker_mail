@@ -5,7 +5,6 @@ FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
 
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 
-# 🔥 FIX: make them available in RUN
 ENV FRAPPE_BRANCH=${FRAPPE_BRANCH}
 ENV FRAPPE_PATH=${FRAPPE_PATH}
 
@@ -13,22 +12,15 @@ USER frappe
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN --mount=type=secret,id=apps_json \
-  set -eux && \
+# ✅ COPY apps.json instead of secrets
+COPY .tmp/apps.json /opt/frappe/apps.json
+
+RUN set -eux && \
   rm -rf /home/frappe/frappe-bench && \
   export NODE_OPTIONS="--max-old-space-size=2048" && \
   export YARN_ENABLE_IMMUTABLE_INSTALLS=false && \
-  APP_INSTALL_ARGS="" && \
-  if [ -f /run/secrets/apps_json ] && [ -s /run/secrets/apps_json ]; then \
-    mkdir -p /opt/frappe && \
-    cp /run/secrets/apps_json /opt/frappe/apps.json && \
-    echo "=== USING apps.json ===" && \
-    cat /opt/frappe/apps.json && \
-    APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
-  else \
-    echo "=== NO apps.json PROVIDED ==="; \
-  fi && \
-  bench init ${APP_INSTALL_ARGS} \
+  bench init \
+    --apps_path=/opt/frappe/apps.json \
     --frappe-branch=${FRAPPE_BRANCH} \
     --frappe-path=${FRAPPE_PATH} \
     --no-procfile \

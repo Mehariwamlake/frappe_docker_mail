@@ -9,6 +9,9 @@ ARG FRAPPE_BRANCH=version-16
 ENV FRAPPE_BRANCH=${FRAPPE_BRANCH}
 ENV FRAPPE_PATH=${FRAPPE_PATH}
 
+USER root
+
+RUN apt-get update && apt-get install -y jq && rm -rf /var/lib/apt/lists/*
 USER frappe
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]

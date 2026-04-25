@@ -1,8 +1,9 @@
+version: "3.8"
+
+name: techvision-frappe
+
 x-customizable-image: &customizable_image
-  # By default the image used only contains the `frappe` and `erpnext` apps.
-  # See https://github.com/frappe/frappe_docker/blob/main/docs/02-setup/02-build-setup.md#define-custom-apps
-  # about using custom images.
-  image: ${CUSTOM_IMAGE:-frappe/erpnext}:${CUSTOM_TAG:-$ERPNEXT_VERSION}
+  image: ${CUSTOM_IMAGE:-ghcr.io/mehariwamlake/mail}:${CUSTOM_TAG:-faeabcf22df970a50cec415ce72e325cee4523bb}
   pull_policy: ${PULL_POLICY:-always}
   restart: ${RESTART_POLICY:-unless-stopped}
 
@@ -17,80 +18,139 @@ x-backend-defaults: &backend_defaults
     - sites:/home/frappe/frappe-bench/sites
 
 services:
+
+  mariadb:
+    image: mariadb:10.8
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-log-bin
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+
+  redis-cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-cache-data:/data
+
+  redis-queue:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-queue-data:/data
+
   configurator:
     <<: *backend_defaults
     platform: linux/amd64
-    entrypoint:
-      - bash
-      - -c
-    # add redis_socketio for backward compatibility
-    command:
-      - >
-        ls -1 apps > sites/apps.txt;
-        bench set-config -g db_host $$DB_HOST;
-        bench set-config -gp db_port $$DB_PORT;
-        bench set-config -g redis_cache "redis://$$REDIS_CACHE";
-        bench set-config -g redis_queue "redis://$$REDIS_QUEUE";
-        bench set-config -g redis_socketio "redis://$$REDIS_QUEUE";
-        bench set-config -gp socketio_port $$SOCKETIO_PORT;
-        bench set-config -g chromium_path /usr/bin/chromium-headless-shell;
+    entrypoint: ["bash", "-c"]
+    command: >
+      ls -1 apps > sites/apps.txt;
+      bench set-config -g db_host mariadb;
+      bench set-config -g db_port 3306;
+      bench set-config -g redis_cache redis://redis-cache:6379;
+      bench set-config -g redis_queue redis://redis-queue:6379;
+      bench set-config -g redis_socketio redis://redis-queue:6379;
+      bench set-config -gp socketio_port 9000;
     environment:
-      DB_HOST: ${DB_HOST:-}
-      DB_PORT: ${DB_PORT:-}
-      REDIS_CACHE: ${REDIS_CACHE:-}
-      REDIS_QUEUE: ${REDIS_QUEUE:-}
-      SOCKETIO_PORT: 9000
-    depends_on: {}
-    restart: on-failure
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      REDIS_CACHE: redis-cache:6379
+      REDIS_QUEUE: redis-queue:6379
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
+
+  # -------------------------
+  # 🔥 AUTO SITE CREATION SERVICE
+  # -------------------------
+  create-site:
+    <<: *backend_defaults
+    platform: linux/amd64
+    depends_on:
+      mariadb:
+        condition: service_started
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+      configurator:
+        condition: service_completed_successfully
+
+    entrypoint: ["bash", "-c"]
+    command: >
+      set -e;
+
+      echo "Waiting for MariaDB...";
+      sleep 10;
+
+      if [ ! -f sites/currentsite.txt ]; then
+
+        echo "Creating site...";
+
+        bench new-site ${SITE_NAME:-mail.techvision.edu.et} \
+          --admin-password ${ADMIN_PASSWORD:-admin} \
+          --mariadb-root-password ${DB_ROOT_PASSWORD:-root} \
+          --db-host mariadb;
+
+        bench --site ${SITE_NAME:-mail.techvision.edu.et} install-app erpnext;
+        bench --site ${SITE_NAME:-mail.techvision.edu.et} install-app mail;
+
+        echo "Site created successfully";
+
+      else
+        echo "Site already exists, skipping...";
+      fi
 
   backend:
     <<: *backend_defaults
     platform: linux/amd64
+    depends_on:
+      mariadb:
+        condition: service_started
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+
+  websocket:
+    <<: *backend_defaults
+    platform: linux/amd64
+    command: >
+      node /home/frappe/frappe-bench/apps/frappe/socketio.js
 
   frontend:
     <<: *customizable_image
     platform: linux/amd64
-    command:
-      - nginx-entrypoint.sh
+    command: ["nginx-entrypoint.sh"]
     environment:
       BACKEND: backend:8000
       SOCKETIO: websocket:9000
-      FRAPPE_SITE_NAME_HEADER: ${FRAPPE_SITE_NAME_HEADER:-$$host}
-      UPSTREAM_REAL_IP_ADDRESS: ${UPSTREAM_REAL_IP_ADDRESS:-127.0.0.1}
-      UPSTREAM_REAL_IP_HEADER: ${UPSTREAM_REAL_IP_HEADER:-X-Forwarded-For}
-      UPSTREAM_REAL_IP_RECURSIVE: ${UPSTREAM_REAL_IP_RECURSIVE:-off}
-      PROXY_READ_TIMEOUT: ${PROXY_READ_TIMEOUT:-120}
-      CLIENT_MAX_BODY_SIZE: ${CLIENT_MAX_BODY_SIZE:-50m}
+      FRAPPE_SITE_NAME_HEADER: ${FRAPPE_SITE_NAME_HEADER:-$host}
     volumes:
       - sites:/home/frappe/frappe-bench/sites
     depends_on:
       - backend
       - websocket
 
-  websocket:
-    <<: [*depends_on_configurator, *customizable_image]
-    platform: linux/amd64
-    command:
-      - node
-      - /home/frappe/frappe-bench/apps/frappe/socketio.js
-    volumes:
-      - sites:/home/frappe/frappe-bench/sites
-
   queue-short:
     <<: *backend_defaults
-    platform: linux/amd64
     command: bench worker --queue short,default
 
   queue-long:
     <<: *backend_defaults
-    platform: linux/amd64
     command: bench worker --queue long,default,short
 
   scheduler:
     <<: *backend_defaults
-    platform: linux/amd64
     command: bench schedule
 
-# ERPNext requires local assets access (Frappe does not)
 volumes:
   sites:
+  mariadb-data:
+  redis-cache-data:
+  redis-queue-data:

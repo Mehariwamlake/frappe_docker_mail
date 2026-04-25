@@ -80,6 +80,8 @@ jobs:
           load: true
           platforms: linux/amd64
           tags: local/mail:test
+          secrets: |
+            apps_json=images/layered/.tmp/apps.json
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=${{ env.FRAPPE_REF }}
@@ -104,6 +106,15 @@ jobs:
             bench list-apps | grep -i mail || echo 'mail not installed'
           "
 
+
+      - name: Extract version from git tag
+        id: gitver
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=" >> $GITHUB_OUTPUT
+          fi
       # ----------------------------
       # 7. Build & PUSH production image
       # ----------------------------
@@ -116,7 +127,7 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ steps.gitver.outputs.VERSION }}
 
           secrets: |
             apps_json=images/layered/.tmp/apps.json

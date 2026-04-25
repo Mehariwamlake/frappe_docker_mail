@@ -4,7 +4,6 @@ ARG FRAPPE_IMAGE_PREFIX=frappe
 FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
 
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
-ARG FRAPPE_BRANCH=version-16
 
 ENV FRAPPE_BRANCH=${FRAPPE_BRANCH}
 ENV FRAPPE_PATH=${FRAPPE_PATH}
@@ -17,13 +16,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # IMPORTANT: ensure frappe owns workspace (fixes volume + permission issues)
-
+RUN mkdir -p /opt/frappe /home/frappe/frappe-bench && \
+    chown -R frappe:frappe /home/frappe /opt/frapp
 USER frappe
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # COPY apps.json (no secrets)
-COPY .tmp/apps.json /opt/frappe/apps.json
+COPY --chown=frappe:frappe .tmp/apps.json /opt/frappe/apps.json
 
 RUN set -eux && \
   rm -rf /home/frappe/frappe-bench && \
@@ -43,7 +43,8 @@ RUN set -eux && \
   echo "{}" > sites/common_site_config.json && \
   find apps -mindepth 1 -path "*/.git" -exec rm -rf {} +
 
-  FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS backend
+
+FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS backend
 
 USER frappe
 WORKDIR /home/frappe/frappe-bench

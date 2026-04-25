@@ -61,7 +61,7 @@ jobs:
             {
               "url": "https://github.com/frappe/erpnext",
               "branch": "${{ env.FRAPPE_REF }}"
-            },
+            }
           
           ]
           EOF

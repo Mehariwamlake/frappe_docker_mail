@@ -9,16 +9,12 @@ ARG FRAPPE_PATH=https://github.com/frappe/frappe
 USER frappe
 
 
-RUN --mount=type=secret,id=apps_json \
-    set -eux; \
-    \
-    echo "Reading apps.json safely..."; \
-    \
-    cp /run/secrets/apps_json /tmp/apps.json; \
-    \
-    test -s /tmp/apps.json || (echo "apps.json empty" && exit 1); \
-    \
+ARG APPS_JSON
+
+RUN set -eux; \
+    echo "$APPS_JSON" > /tmp/apps.json; \
     cat /tmp/apps.json; \
+    test -s /tmp/apps.json; \
     \
     APP_INSTALL_ARGS="--apps_path=/tmp/apps.json"; \
     \

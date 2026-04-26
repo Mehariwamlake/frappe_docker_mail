@@ -22,6 +22,8 @@ services:
   mariadb:
     image: mariadb:10.8
     restart: unless-stopped
+    networks:
+    - techvision-net
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -34,18 +36,24 @@ services:
   redis-cache:
     image: redis:7-alpine
     restart: unless-stopped
+    networks:
+    - techvision-net
     volumes:
       - redis-cache-data:/data
 
   redis-queue:
     image: redis:7-alpine
     restart: unless-stopped
+    networks:
+    - techvision-net
     volumes:
       - redis-queue-data:/data
 
   configurator:
     <<: *backend_defaults
     platform: linux/amd64
+    networks:
+    - techvision-net
     entrypoint: ["bash", "-c"]
     command: >
       ls -1 apps > sites/apps.txt;
@@ -75,6 +83,8 @@ services:
   backend:
     <<: *backend_defaults
     platform: linux/amd64
+    networks:
+    - techvision-net
     depends_on:
       mariadb:
         condition: service_started
@@ -88,6 +98,8 @@ services:
     platform: linux/amd64
     command: >
       node /home/frappe/frappe-bench/apps/frappe/socketio.js
+    networks:
+    - techvision-net
 
   frontend:
     <<: *customizable_image
@@ -99,6 +111,8 @@ services:
       FRAPPE_SITE_NAME_HEADER: mail.techvision.edu.et
     volumes:
       - sites:/home/frappe/frappe-bench/sites
+    networks:
+    - techvision-net
     depends_on:
       - backend
       - websocket
@@ -106,17 +120,27 @@ services:
   queue-short:
     <<: *backend_defaults
     command: bench worker --queue short,default
+    networks:
+    - techvision-net
 
   queue-long:
     <<: *backend_defaults
     command: bench worker --queue long,default,short
+    networks:
+    - techvision-net
 
   scheduler:
     <<: *backend_defaults
     command: bench schedule
+    networks:
+    - techvision-net
 
 volumes:
   sites:
   mariadb-data:
   redis-cache-data:
   redis-queue-data:
+
+networks:
+  default:
+    name: techvision-net

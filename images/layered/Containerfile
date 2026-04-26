@@ -7,8 +7,7 @@ ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 
 USER frappe
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/home/frappe/.bun/bin:$PATH"
+
 
 RUN bench init \
     --frappe-branch=${FRAPPE_BRANCH} \

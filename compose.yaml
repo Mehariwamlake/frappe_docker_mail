@@ -143,4 +143,5 @@ volumes:
   redis-queue-data:
 
 networks:
-- techvision-net
+  techvision-net:
+    driver: bridge

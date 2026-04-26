@@ -118,8 +118,6 @@ services:
       FRAPPE_SITE_NAME_HEADER: mail.techvision.edu.et
     volumes:
       - sites:/home/frappe/frappe-bench/sites
-    networks:
-    - techvision-net
     depends_on:
       - backend
       - websocket

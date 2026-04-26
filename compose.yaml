@@ -78,7 +78,10 @@ services:
     depends_on:
       mariadb:
         condition: service_started
-      
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
 
   websocket:
     <<: *backend_defaults
@@ -93,7 +96,7 @@ services:
     environment:
       BACKEND: backend:8000
       SOCKETIO: websocket:9000
-      FRAPPE_SITE_NAME_HEADER: ${FRAPPE_SITE_NAME_HEADER:-$host}
+      FRAPPE_SITE_NAME_HEADER: mail.techvision.edu.et
     volumes:
       - sites:/home/frappe/frappe-bench/sites
     depends_on:

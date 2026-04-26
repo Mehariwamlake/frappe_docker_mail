@@ -91,7 +91,7 @@ services:
     - techvision-net
     environment:
       BACKEND: backend:8000
-      SOCKETIO: websocket:9000
+      SOCKETIO: http://websocket:9000
       FRAPPE_SITE_NAME_HEADER: mail.techvision.edu.et
     volumes:
       - sites:/home/frappe/frappe-bench/sites

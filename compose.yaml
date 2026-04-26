@@ -43,8 +43,7 @@ services:
   backend:
     <<: *backend
     depends_on:
-      create-site:
-        condition: service_completed_successfully
+      
 
   # -------------------------
   # WEBSOCKET
@@ -79,23 +78,19 @@ services:
     <<: *backend
     command: bench worker --queue short,default
     depends_on:
-      create-site:
-        condition: service_completed_successfully
+    
 
   queue-long:
     <<: *backend
     command: bench worker --queue long,default,short
     depends_on:
-      create-site:
-        condition: service_completed_successfully
+     
 
   scheduler:
     <<: *backend
     command: bench schedule
     depends_on:
-      create-site:
-        condition: service_completed_successfully
-
+    
 # -------------------------
 # VOLUMES
 # -------------------------

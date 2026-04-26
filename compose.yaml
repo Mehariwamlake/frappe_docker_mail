@@ -43,28 +43,7 @@ services:
     volumes:
       - redis-queue-data:/data
 
-  configurator:
-    <<: *backend_defaults
-    platform: linux/amd64
-    entrypoint: ["bash", "-c"]
-    command: >
-      ls -1 apps > sites/apps.txt;
-      bench set-config -g db_host mariadb;
-      bench set-config -g db_port 3306;
-      bench set-config -g redis_cache redis://redis-cache:6379;
-      bench set-config -g redis_queue redis://redis-queue:6379;
-      bench set-config -g redis_socketio redis://redis-queue:6379;
-      bench set-config -gp socketio_port 9000;
-      bench set-config -g websocket_url ws://frontend:9000;
-    environment:
-      DB_HOST: mariadb
-      DB_PORT: 3306
-      REDIS_CACHE: redis-cache:6379
-      REDIS_QUEUE: redis-queue:6379
-    depends_on:
-      - mariadb
-      - redis-cache
-      - redis-queue
+  
 
   # -------------------------
   # 🔥 AUTO SITE CREATION SERVICE
@@ -79,8 +58,7 @@ services:
         condition: service_started
       redis-queue:
         condition: service_started
-      configurator:
-        condition: service_completed_successfully
+ 
 
     entrypoint: ["bash", "-c"]
     command: >
@@ -94,6 +72,9 @@ services:
       if [ ! -d sites/$SITE ]; then
 
         echo "Creating site...";
+        mkdir -p sites;
+
+
         bench set-config -g redis_cache redis://redis-cache:6379;
         bench set-config -g redis_queue redis://redis-queue:6379;
         bench set-config -g redis_socketio redis://redis-queue:6379;
@@ -137,8 +118,7 @@ services:
     <<: *backend_defaults
     platform: linux/amd64
     depends_on:
-      configurator:
-        condition: service_completed_successfully
+ 
       redis-queue:
         condition: service_started
       create-site:
@@ -155,7 +135,7 @@ services:
     environment:
       BACKEND: backend:8000
       SOCKETIO: websocket:9000
-      FRAPPE_SITE_NAME_HEADER: ${FRAPPE_SITE_NAME_HEADER:-mail.techvision.edu.et}
+      FRAPPE_SITE_NAME_HEADER: ${FRAPPE_SITE_NAME_HEADER:-$host}
     volumes:
       - sites:/home/frappe/frappe-bench/sites
     depends_on:

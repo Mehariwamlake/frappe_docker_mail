@@ -89,6 +89,8 @@ services:
     command: ["nginx-entrypoint.sh"]
     networks:
     - techvision-net
+    ports:
+    - "8080:8080"
     environment:
       BACKEND: backend:8000
       SOCKETIO: websocket:9000

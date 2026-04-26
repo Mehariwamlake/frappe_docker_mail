@@ -36,16 +36,12 @@ services:
   redis-cache:
     image: redis:7-alpine
     restart: unless-stopped
-    networks:
-    - techvision-net
     volumes:
       - redis-cache-data:/data
 
   redis-queue:
     image: redis:7-alpine
     restart: unless-stopped
-    networks:
-    - techvision-net
     volumes:
       - redis-queue-data:/data
 
@@ -118,8 +114,6 @@ services:
       FRAPPE_SITE_NAME_HEADER: mail.techvision.edu.et
     volumes:
       - sites:/home/frappe/frappe-bench/sites
-    networks:
-    - techvision-net
     depends_on:
       - backend
       - websocket
@@ -149,4 +143,4 @@ volumes:
   redis-queue-data:
 
 networks:
-  - techvision-net
+- techvision-net

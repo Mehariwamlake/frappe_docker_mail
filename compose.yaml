@@ -53,8 +53,6 @@ services:
     <<: *backend
     command: node /home/frappe/frappe-bench/apps/frappe/socketio.js
     depends_on:
-      create-site:
-        condition: service_completed_successfully
       redis-queue:
         condition: service_started
 

@@ -100,6 +100,13 @@ services:
       node /home/frappe/frappe-bench/apps/frappe/socketio.js
     networks:
     - techvision-net
+    depends_on:
+      mariadb:
+        condition: service_started
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
 
   frontend:
     <<: *customizable_image

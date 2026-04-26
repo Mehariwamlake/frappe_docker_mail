@@ -33,12 +33,16 @@ services:
   redis-cache:
     image: redis:7-alpine
     restart: unless-stopped
+    networks:
+    - techvision-net
     volumes:
       - redis-cache-data:/data
 
   redis-queue:
     image: redis:7-alpine
     restart: unless-stopped
+    networks:
+    - techvision-net
     volumes:
       - redis-queue-data:/data
 
@@ -81,6 +85,8 @@ services:
     <<: *customizable_image
     platform: linux/amd64
     command: ["nginx-entrypoint.sh"]
+    networks:
+    - techvision-net
     environment:
       BACKEND: backend:8000
       SOCKETIO: websocket:9000

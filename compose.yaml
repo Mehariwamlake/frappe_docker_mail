@@ -55,6 +55,7 @@ services:
       bench set-config -g redis_queue redis://redis-queue:6379;
       bench set-config -g redis_socketio redis://redis-queue:6379;
       bench set-config -gp socketio_port 9000;
+      bench set-config -g websocket_url ws://frontend:9000;
     environment:
       DB_HOST: mariadb
       DB_PORT: 3306
@@ -120,6 +121,11 @@ services:
   websocket:
     <<: *backend_defaults
     platform: linux/amd64
+    depends_on:
+    - redis-queue
+    - configurator
+    environment:
+      REDIS_URL: redis://redis-queue:6379
     command: >
       node /home/frappe/frappe-bench/apps/frappe/socketio.js
 

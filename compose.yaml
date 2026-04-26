@@ -1,98 +1,122 @@
+version: "3.8"
+
 name: techvision-frappe
 
-x-image: &image
-  image: ${CUSTOM_IMAGE:-ghcr.io/mehariwamlake/mail}:${CUSTOM_TAG:-latest}
-  restart: unless-stopped
+x-customizable-image: &customizable_image
+  image: ${CUSTOM_IMAGE:-ghcr.io/mehariwamlake/mail}:${CUSTOM_TAG:-faeabcf22df970a50cec415ce72e325cee4523bb}
+  pull_policy: ${PULL_POLICY:-always}
+  restart: ${RESTART_POLICY:-unless-stopped}
 
-x-backend: &backend
-  <<: *image
+x-depends-on-configurator: &depends_on_configurator
+  depends_on:
+    configurator:
+      condition: service_completed_successfully
+
+x-backend-defaults: &backend_defaults
+  <<: [*depends_on_configurator, *customizable_image]
   volumes:
     - sites:/home/frappe/frappe-bench/sites
 
 services:
 
-  # -------------------------
-  # DATABASE
-  # -------------------------
   mariadb:
     image: mariadb:10.8
     restart: unless-stopped
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+      - --skip-log-bin
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
     volumes:
       - mariadb-data:/var/lib/mysql
 
-  # -------------------------
-  # REDIS
-  # -------------------------
   redis-cache:
     image: redis:7-alpine
     restart: unless-stopped
+    volumes:
+      - redis-cache-data:/data
 
   redis-queue:
     image: redis:7-alpine
     restart: unless-stopped
+    volumes:
+      - redis-queue-data:/data
 
-  
+  configurator:
+    <<: *backend_defaults
+    platform: linux/amd64
+    entrypoint: ["bash", "-c"]
+    command: >
+      ls -1 apps > sites/apps.txt;
+      bench set-config -g db_host mariadb;
+      bench set-config -g db_port 3306;
+      bench set-config -g redis_cache redis://redis-cache:6379;
+      bench set-config -g redis_queue redis://redis-queue:6379;
+      bench set-config -g redis_socketio redis://redis-queue:6379;
+      bench set-config -gp socketio_port 9000;
+
+    
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      REDIS_CACHE: redis-cache:6379
+      REDIS_QUEUE: redis-queue:6379
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
+
   # -------------------------
-  # BACKEND
+  # 🔥 AUTO SITE CREATION SERVICE
   # -------------------------
+
+
   backend:
-    <<: *backend
+    <<: *backend_defaults
+    platform: linux/amd64
     depends_on:
-      
-
-  # -------------------------
-  # WEBSOCKET
-  # -------------------------
-  websocket:
-    <<: *backend
-    command: node /home/frappe/frappe-bench/apps/frappe/socketio.js
-    depends_on:
+      mariadb:
+        condition: service_started
+      redis-cache:
+        condition: service_started
       redis-queue:
         condition: service_started
 
-  # -------------------------
-  # FRONTEND
-  # -------------------------
+  websocket:
+    <<: *backend_defaults
+    platform: linux/amd64
+    command: >
+      node /home/frappe/frappe-bench/apps/frappe/socketio.js
+
   frontend:
-    <<: *image
+    <<: *customizable_image
+    platform: linux/amd64
     command: ["nginx-entrypoint.sh"]
     environment:
       BACKEND: backend:8000
       SOCKETIO: websocket:9000
-      FRAPPE_SITE_NAME_HEADER: mail.techvision.edu.et
+      FRAPPE_SITE_NAME_HEADER: ${FRAPPE_SITE_NAME_HEADER:-$host}
     volumes:
       - sites:/home/frappe/frappe-bench/sites
     depends_on:
       - backend
       - websocket
 
-  # -------------------------
-  # WORKERS
-  # -------------------------
   queue-short:
-    <<: *backend
+    <<: *backend_defaults
     command: bench worker --queue short,default
-    
 
   queue-long:
-    <<: *backend
+    <<: *backend_defaults
     command: bench worker --queue long,default,short
-    :
-     
 
   scheduler:
-    <<: *backend
+    <<: *backend_defaults
     command: bench schedule
-    
-# -------------------------
-# VOLUMES
-# -------------------------
+
 volumes:
   sites:
-    driver: local
   mariadb-data:
+  redis-cache-data:
+  redis-queue-data:

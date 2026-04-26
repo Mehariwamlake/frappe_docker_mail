@@ -1,84 +1,80 @@
-version: "3.8"
-
 name: techvision-frappe
 
-x-customizable-image: &customizable_image
-  image: ${CUSTOM_IMAGE:-ghcr.io/mehariwamlake/mail}:${CUSTOM_TAG:-faeabcf22df970a50cec415ce72e325cee4523bb}
-  pull_policy: ${PULL_POLICY:-always}
-  restart: ${RESTART_POLICY:-unless-stopped}
+x-image: &image
+  image: ${CUSTOM_IMAGE:-ghcr.io/mehariwamlake/mail}:${CUSTOM_TAG:-latest}
+  restart: unless-stopped
 
+x-backend: &backend
+  <<: *image
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
 
 services:
 
+  # -------------------------
+  # DATABASE
+  # -------------------------
   mariadb:
     image: mariadb:10.8
     restart: unless-stopped
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
-      - --skip-log-bin
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
     volumes:
       - mariadb-data:/var/lib/mysql
 
+  # -------------------------
+  # REDIS
+  # -------------------------
   redis-cache:
     image: redis:7-alpine
     restart: unless-stopped
-    volumes:
-      - redis-cache-data:/data
 
   redis-queue:
     image: redis:7-alpine
     restart: unless-stopped
-    volumes:
-      - redis-queue-data:/data
-
-  
 
   # -------------------------
-  # 🔥 AUTO SITE CREATION SERVICE
+  # 🔥 SITE CREATION (ONLY SOURCE OF TRUTH)
   # -------------------------
   create-site:
-    <<: *backend_defaults
-    platform: linux/amd64
-    depends_on:
-      mariadb:
-        condition: service_started
-      redis-cache:
-        condition: service_started
-      redis-queue:
-        condition: service_started
- 
-
+    <<: *backend
     entrypoint: ["bash", "-c"]
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
     command: >
       set -e;
 
       echo "Waiting for MariaDB...";
-      sleep 15;
+      until nc -z mariadb 3306; do sleep 2; done;
 
       SITE=${SITE_NAME:-mail.techvision.edu.et};
+
+      mkdir -p sites;
+
+      # 🔥 FORCE CLEAN CONFIG (kills 127.0.0.1:11000 bug)
+      rm -f sites/common_site_config.json;
+
+      echo "Setting global config...";
+      bench set-config -g db_host mariadb;
+      bench set-config -g db_port 3306;
+      bench set-config -g redis_cache redis://redis-cache:6379;
+      bench set-config -g redis_queue redis://redis-queue:6379;
+      bench set-config -g redis_socketio redis://redis-queue:6379;
 
       if [ ! -d sites/$SITE ]; then
 
         echo "Creating site...";
-        mkdir -p sites;
-
-
-        bench set-config -g redis_cache redis://redis-cache:6379;
-        bench set-config -g redis_queue redis://redis-queue:6379;
-        bench set-config -g redis_socketio redis://redis-queue:6379;
-        bench set-config -g db_host mariadb;
-        bench set-config -g db_port 3306;
-
         bench new-site $SITE \
           --admin-password ${ADMIN_PASSWORD:-admin} \
           --mariadb-root-password ${DB_ROOT_PASSWORD:-root} \
           --db-host mariadb;
 
-        echo "Applying correct Redis config...";
-
+        echo "Applying site config...";
         bench --site $SITE set-config redis_cache redis://redis-cache:6379;
         bench --site $SITE set-config redis_queue redis://redis-queue:6379;
         bench --site $SITE set-config redis_socketio redis://redis-queue:6379;
@@ -87,67 +83,75 @@ services:
         bench --site $SITE install-app mail;
 
         echo "Site created successfully";
-
       else
         echo "Site already exists, skipping...";
       fi
 
+  # -------------------------
+  # BACKEND
+  # -------------------------
   backend:
-    <<: *backend_defaults
-    platform: linux/amd64
+    <<: *backend
     depends_on:
       create-site:
         condition: service_completed_successfully
-      mariadb:
-        condition: service_started
-      redis-cache:
-        condition: service_started
-      redis-queue:
-        condition: service_started
 
+  # -------------------------
+  # WEBSOCKET
+  # -------------------------
   websocket:
-    <<: *backend_defaults
-    platform: linux/amd64
+    <<: *backend
+    command: node /home/frappe/frappe-bench/apps/frappe/socketio.js
     depends_on:
- 
-      redis-queue:
-        condition: service_started
       create-site:
         condition: service_completed_successfully
-    environment:
-      REDIS_URL: redis://redis-queue:6379
-    command: >
-      node /home/frappe/frappe-bench/apps/frappe/socketio.js
+      redis-queue:
+        condition: service_started
 
+  # -------------------------
+  # FRONTEND
+  # -------------------------
   frontend:
-    <<: *customizable_image
-    platform: linux/amd64
+    <<: *image
     command: ["nginx-entrypoint.sh"]
     environment:
       BACKEND: backend:8000
       SOCKETIO: websocket:9000
-      FRAPPE_SITE_NAME_HEADER: ${FRAPPE_SITE_NAME_HEADER:-$host}
+      FRAPPE_SITE_NAME_HEADER: mail.techvision.edu.et
     volumes:
       - sites:/home/frappe/frappe-bench/sites
     depends_on:
       - backend
       - websocket
 
+  # -------------------------
+  # WORKERS
+  # -------------------------
   queue-short:
-    <<: *backend_defaults
+    <<: *backend
     command: bench worker --queue short,default
+    depends_on:
+      create-site:
+        condition: service_completed_successfully
 
   queue-long:
-    <<: *backend_defaults
+    <<: *backend
     command: bench worker --queue long,default,short
+    depends_on:
+      create-site:
+        condition: service_completed_successfully
 
   scheduler:
-    <<: *backend_defaults
+    <<: *backend
     command: bench schedule
+    depends_on:
+      create-site:
+        condition: service_completed_successfully
 
+# -------------------------
+# VOLUMES
+# -------------------------
 volumes:
   sites:
     driver: local
   mariadb-data:
-  redis-cache-data:
-  redis-queue-data:

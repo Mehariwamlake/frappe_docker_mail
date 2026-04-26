@@ -7,13 +7,10 @@ x-customizable-image: &customizable_image
   pull_policy: ${PULL_POLICY:-always}
   restart: ${RESTART_POLICY:-unless-stopped}
 
-x-depends-on-configurator: &depends_on_configurator
-  depends_on:
-    configurator:
-      condition: service_completed_successfully
+
 
 x-backend-defaults: &backend_defaults
-  <<: [*depends_on_configurator, *customizable_image]
+  <<: [*customizable_image]
   volumes:
     - sites:/home/frappe/frappe-bench/sites
 
@@ -45,31 +42,7 @@ services:
     volumes:
       - redis-queue-data:/data
 
-  configurator:
-    <<: *backend_defaults
-    platform: linux/amd64
-    networks:
-    - techvision-net
-    entrypoint: ["bash", "-c"]
-    command: >
-      ls -1 apps > sites/apps.txt;
-      bench set-config -g db_host mariadb;
-      bench set-config -g db_port 3306;
-      bench set-config -g redis_cache redis://redis-cache:6379;
-      bench set-config -g redis_queue redis://redis-queue:6379;
-      bench set-config -g redis_socketio redis://redis-queue:6379;
-      bench set-config -gp socketio_port 9000;
 
-    
-    environment:
-      DB_HOST: mariadb
-      DB_PORT: 3306
-      REDIS_CACHE: redis-cache:6379
-      REDIS_QUEUE: redis-queue:6379
-    depends_on:
-      - mariadb
-      - redis-cache
-      - redis-queue
 
   # -------------------------
   # 🔥 AUTO SITE CREATION SERVICE

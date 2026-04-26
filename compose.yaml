@@ -77,19 +77,17 @@ services:
   queue-short:
     <<: *backend
     command: bench worker --queue short,default
-    depends_on:
     
 
   queue-long:
     <<: *backend
     command: bench worker --queue long,default,short
-    depends_on:
+    :
      
 
   scheduler:
     <<: *backend
     command: bench schedule
-    depends_on:
     
 # -------------------------
 # VOLUMES

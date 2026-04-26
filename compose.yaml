@@ -93,6 +93,7 @@ services:
       BACKEND: backend:8000
       SOCKETIO: websocket:9000
       FRAPPE_SITE_NAME_HEADER: mail.techvision.edu.et
+      UPSTREAM_REAL_IP_ADDRESS: 0.0.0.0
     volumes:
       - sites:/home/frappe/frappe-bench/sites
     depends_on:

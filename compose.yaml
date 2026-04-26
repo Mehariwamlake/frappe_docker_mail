@@ -78,10 +78,7 @@ services:
     depends_on:
       mariadb:
         condition: service_started
-      redis-cache:
-        condition: service_started
-      redis-queue:
-        condition: service_started
+      
 
   websocket:
     <<: *backend_defaults

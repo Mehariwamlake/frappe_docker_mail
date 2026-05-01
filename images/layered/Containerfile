@@ -1,15 +1,18 @@
 ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_IMAGE_PREFIX=frappe
 FROM node:20-bullseye AS builder
-RUN corepack enable
 
+RUN corepack enable && corepack prepare yarn@1.22.19 --activate
 
+# ✅ create frappe user (FIX)
+RUN useradd -ms /bin/bash frappe
 
-# then install frappe
 ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 
+RUN useradd -ms /bin/bash frappe && chown -R frappe:frappe /home/frappe
 USER frappe
+WORKDIR /home/frappe
 
 
 RUN bench init \
@@ -21,18 +24,14 @@ RUN bench init \
     --verbose \
     /home/frappe/frappe-bench && \
   cd /home/frappe/frappe-bench && \
-
   # -------------------------
   # Install Apps Properly
   # -------------------------
   bench get-app erpnext https://github.com/frappe/erpnext --branch version-16 && \
   bench get-app mail https://github.com/Mehariwamlake/mail --branch develop && \
-
   # ONLY build (no site creation here!)
   bench build && \
-
   rm -rf apps/*/.git
-
 # -------------------------
 # 2. RUNTIME STAGE
 # -------------------------

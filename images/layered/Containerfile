@@ -10,7 +10,6 @@ RUN useradd -ms /bin/bash frappe
 ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 
-RUN useradd -ms /bin/bash frappe && chown -R frappe:frappe /home/frappe
 USER frappe
 WORKDIR /home/frappe
 

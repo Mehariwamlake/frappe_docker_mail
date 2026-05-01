@@ -29,6 +29,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
     volumes:
       - mariadb-data:/var/lib/mysql
+    
 
   redis-cache:
     image: redis:7-alpine
@@ -125,10 +126,18 @@ services:
 
 volumes:
   sites:
-  mariadb-data:
-  redis-cache-data:
-  redis-queue-data:
+    external: true
+    name: frappe-sites
 
+  mariadb-data:
+    external: true
+    name: frappe-db
+  redis-cache-data:
+    external: true
+    name: frappe-redis-cache  
+  redis-queue-data:
+    external: true
+    name: frappe-redis-queue
 networks:
   techvision-net:
     driver: bridge

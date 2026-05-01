@@ -57,7 +57,10 @@ services:
     <<: *backend_defaults
     platform: linux/amd64
     networks:
-    - techvision-net
+      techvision-net:
+        aliases:
+          - backend
+      
     depends_on:
       mariadb:
         condition: service_started

@@ -1,72 +1,56 @@
-# -------------------------
-# GLOBAL ARGS
-# -------------------------
 ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_IMAGE_PREFIX=frappe
 
-# -------------------------
-# 1. BUILDER STAGE
-# -------------------------
-FROM node:20-bullseye AS builder
+FROM ${FRAPPE_IMAGE_PREFIX}/build:${FRAPPE_BRANCH} AS builder
 
-ARG FRAPPE_BRANCH
+ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
-
-# Node tools
-RUN corepack enable && corepack prepare yarn@1.22.19 --activate
-
-# System dependencies
-USER root
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-venv \
-    git \
-    build-essential \
-    && pip3 install frappe-bench \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create user ONCE
-RUN useradd -ms /bin/bash frappe
+ARG CACHE_BUST=""
 
 USER frappe
-WORKDIR /home/frappe
 
-# -------------------------
-# INIT BENCH + APPS
-# -------------------------
-RUN bench init \
+RUN --mount=type=secret,id=apps_json,target=/opt/frappe/apps.json,uid=1000,gid=1000 \
+  : "${CACHE_BUST}" && \
+  export APP_INSTALL_ARGS="" && \
+  if [ -f /opt/frappe/apps.json ] && [ -s /opt/frappe/apps.json ]; then \
+    export APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
+  fi && \
+  bench init ${APP_INSTALL_ARGS}\
     --frappe-branch=${FRAPPE_BRANCH} \
     --frappe-path=${FRAPPE_PATH} \
     --no-procfile \
     --no-backups \
     --skip-redis-config-generation \
     --verbose \
-    frappe-bench
+    /home/frappe/frappe-bench && \
+  cd /home/frappe/frappe-bench && \
+  echo "{}" > sites/common_site_config.json && \
+  find apps -mindepth 1 -path "*/.git" | xargs rm -fr
 
-WORKDIR /home/frappe/frappe-bench
-
-RUN bench get-app erpnext https://github.com/frappe/erpnext --branch version-16 && \
-    bench get-app mail https://github.com/Mehariwamlake/mail --branch develop && \
-    bench build && \
-    rm -rf apps/*/.git
-
-# -------------------------
-# 2. RUNTIME STAGE (CLEAN)
-# -------------------------
-FROM frappe/erpnext:v16 AS backend
-
-ARG FRAPPE_BRANCH
+FROM ${FRAPPE_IMAGE_PREFIX}/base:${FRAPPE_BRANCH} AS backend
 
 USER frappe
+
 COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
 
 WORKDIR /home/frappe/frappe-bench
+
+# Move assets to image-layer storage
+RUN cp -r /home/frappe/frappe-bench/sites/assets /home/frappe/frappe-bench/assets && \
+  rm -rf /home/frappe/frappe-bench/sites/assets
 
 VOLUME [ \
   "/home/frappe/frappe-bench/sites", \
   "/home/frappe/frappe-bench/logs" \
 ]
+
+USER root
+# This entrypoint script link build assets of the image to the mounted sites volume at container initialization
+COPY resources/core/main-entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+USER frappe
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 CMD [ \
   "/home/frappe/frappe-bench/env/bin/gunicorn", \

@@ -1,49 +1,52 @@
 #!/bin/bash
 
-set -e
+# Set variables that do not exist
+if [[ -z "$BACKEND" ]]; then
+  echo "BACKEND defaulting to 0.0.0.0:8000"
+  export BACKEND=0.0.0.0:8000
+fi
+if [[ -z "$SOCKETIO" ]]; then
+  echo "SOCKETIO defaulting to 0.0.0.0:9000"
+  export SOCKETIO=0.0.0.0:9000
+fi
+if [[ -z "$UPSTREAM_REAL_IP_ADDRESS" ]]; then
+  echo "UPSTREAM_REAL_IP_ADDRESS defaulting to 127.0.0.1"
+  export UPSTREAM_REAL_IP_ADDRESS=127.0.0.1
+fi
+if [[ -z "$UPSTREAM_REAL_IP_HEADER" ]]; then
+  echo "UPSTREAM_REAL_IP_HEADER defaulting to X-Forwarded-For"
+  export UPSTREAM_REAL_IP_HEADER=X-Forwarded-For
+fi
+if [[ -z "$UPSTREAM_REAL_IP_RECURSIVE" ]]; then
+  echo "UPSTREAM_REAL_IP_RECURSIVE defaulting to off"
+  export UPSTREAM_REAL_IP_RECURSIVE=off
+fi
+if [[ -z "$FRAPPE_SITE_NAME_HEADER" ]]; then
+  # shellcheck disable=SC2016
+  echo 'FRAPPE_SITE_NAME_HEADER defaulting to $host'
+  # shellcheck disable=SC2016
+  export FRAPPE_SITE_NAME_HEADER='$host'
+fi
 
-# -----------------------------
-# Default values
-# -----------------------------
-export BACKEND=${BACKEND:-backend:8000}
-export SOCKETIO=${SOCKETIO:-websocket:9000}
+if [[ -z "$PROXY_READ_TIMEOUT" ]]; then
+  echo "PROXY_READ_TIMEOUT defaulting to 120"
+  export PROXY_READ_TIMEOUT=120
+fi
 
-export UPSTREAM_REAL_IP_ADDRESS=${UPSTREAM_REAL_IP_ADDRESS:-127.0.0.1}
-export UPSTREAM_REAL_IP_HEADER=${UPSTREAM_REAL_IP_HEADER:-X-Forwarded-For}
-export UPSTREAM_REAL_IP_RECURSIVE=${UPSTREAM_REAL_IP_RECURSIVE:-off}
+if [[ -z "$CLIENT_MAX_BODY_SIZE" ]]; then
+  echo "CLIENT_MAX_BODY_SIZE defaulting to 50m"
+  export CLIENT_MAX_BODY_SIZE=50m
+fi
 
-export FRAPPE_SITE_NAME_HEADER=${FRAPPE_SITE_NAME_HEADER:-$host}
+# shellcheck disable=SC2016
+envsubst '${BACKEND}
+  ${SOCKETIO}
+  ${UPSTREAM_REAL_IP_ADDRESS}
+  ${UPSTREAM_REAL_IP_HEADER}
+  ${UPSTREAM_REAL_IP_RECURSIVE}
+  ${FRAPPE_SITE_NAME_HEADER}
+  ${PROXY_READ_TIMEOUT}
+	${CLIENT_MAX_BODY_SIZE}' \
+  </templates/nginx/frappe.conf.template >/etc/nginx/conf.d/frappe.conf
 
-export PROXY_READ_TIMEOUT=${PROXY_READ_TIMEOUT:-120}
-export CLIENT_MAX_BODY_SIZE=${CLIENT_MAX_BODY_SIZE:-50m}
-
-echo "Backend: $BACKEND"
-echo "SocketIO: $SOCKETIO"
-
-# -----------------------------
-# Generate nginx config safely
-# -----------------------------
-envsubst '
-$BACKEND
-$SOCKETIO
-$UPSTREAM_REAL_IP_ADDRESS
-$UPSTREAM_REAL_IP_HEADER
-$UPSTREAM_REAL_IP_RECURSIVE
-$FRAPPE_SITE_NAME_HEADER
-$PROXY_READ_TIMEOUT
-$CLIENT_MAX_BODY_SIZE
-' < /templates/nginx/frappe.conf.template \
-> /etc/nginx/conf.d/frappe.conf
-
-# -----------------------------
-# IMPORTANT: Enable Docker DNS
-# -----------------------------
-cat <<EOF >> /etc/nginx/nginx.conf
-
-resolver 127.0.0.11 ipv6=off;
-EOF
-
-# -----------------------------
-# Start nginx
-# -----------------------------
-exec nginx -g 'daemon off;'
+nginx -g 'daemon off;'

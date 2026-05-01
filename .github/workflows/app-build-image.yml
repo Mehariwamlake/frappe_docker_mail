@@ -3,7 +3,7 @@ name: Techvision Mail - Build & Push Image
 on:
   push:
     branches:
-      - main
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -16,6 +16,7 @@ env:
   FRAPPE_REF: version-16
   NODE_VERSION: 18.18.2
   PYTHON_VERSION: 3.11.6
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:

@@ -1,7 +1,7 @@
 ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_IMAGE_PREFIX=frappe
 FROM node:20-bullseye AS builder
-RUN npm install -g yarn
+RUN corepack enable
 
 
 

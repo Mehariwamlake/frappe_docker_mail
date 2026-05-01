@@ -3,6 +3,14 @@ ARG FRAPPE_IMAGE_PREFIX=frappe
 FROM node:20-bullseye AS builder
 
 RUN corepack enable && corepack prepare yarn@1.22.19 --activate
+USER root
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    build-essential \
+    && pip3 install frappe-bench
 
 # ✅ create frappe user (FIX)
 RUN useradd -ms /bin/bash frappe

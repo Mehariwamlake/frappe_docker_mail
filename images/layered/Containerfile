@@ -1,8 +1,21 @@
+# -------------------------
+# GLOBAL ARGS
+# -------------------------
 ARG FRAPPE_BRANCH=version-16
 ARG FRAPPE_IMAGE_PREFIX=frappe
+
+# -------------------------
+# 1. BUILDER STAGE
+# -------------------------
 FROM node:20-bullseye AS builder
 
+ARG FRAPPE_BRANCH
+ARG FRAPPE_PATH=https://github.com/frappe/frappe
+
+# Node tools
 RUN corepack enable && corepack prepare yarn@1.22.19 --activate
+
+# System dependencies
 USER root
 RUN apt-get update && apt-get install -y \
     python3 \
@@ -10,18 +23,18 @@ RUN apt-get update && apt-get install -y \
     python3-venv \
     git \
     build-essential \
-    && pip3 install frappe-bench
+    && pip3 install frappe-bench \
+    && rm -rf /var/lib/apt/lists/*
 
-# ✅ create frappe user (FIX)
+# Create user ONCE
 RUN useradd -ms /bin/bash frappe
-
-ARG FRAPPE_BRANCH=version-16
-ARG FRAPPE_PATH=https://github.com/frappe/frappe
 
 USER frappe
 WORKDIR /home/frappe
 
-
+# -------------------------
+# INIT BENCH + APPS
+# -------------------------
 RUN bench init \
     --frappe-branch=${FRAPPE_BRANCH} \
     --frappe-path=${FRAPPE_PATH} \
@@ -29,24 +42,23 @@ RUN bench init \
     --no-backups \
     --skip-redis-config-generation \
     --verbose \
-    /home/frappe/frappe-bench && \
-  cd /home/frappe/frappe-bench && \
-  # -------------------------
-  # Install Apps Properly
-  # -------------------------
-  bench get-app erpnext https://github.com/frappe/erpnext --branch version-16 && \
-  bench get-app mail https://github.com/Mehariwamlake/mail --branch develop && \
-  # ONLY build (no site creation here!)
-  bench build && \
-  rm -rf apps/*/.git
-# -------------------------
-# 2. RUNTIME STAGE
-# -------------------------
+    frappe-bench
 
-FROM ${FRAPPE_IMAGE_PREFIX}/base:${FRAPPE_BRANCH} AS backend
+WORKDIR /home/frappe/frappe-bench
+
+RUN bench get-app erpnext https://github.com/frappe/erpnext --branch version-16 && \
+    bench get-app mail https://github.com/Mehariwamlake/mail --branch develop && \
+    bench build && \
+    rm -rf apps/*/.git
+
+# -------------------------
+# 2. RUNTIME STAGE (CLEAN)
+# -------------------------
+FROM frappe/erpnext:v16 AS backend
+
+ARG FRAPPE_BRANCH
 
 USER frappe
-
 COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
 
 WORKDIR /home/frappe/frappe-bench

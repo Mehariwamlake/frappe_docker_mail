@@ -97,7 +97,7 @@ jobs:
       ### Using docker build
       - uses: actions/checkout@v5
         with:
-          repository: frappe/frappe_docker
+          repository: Mehariwamlake/frappe_docker_mail
           path: builds
       - name: Normalize owner to lowercase
         run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV

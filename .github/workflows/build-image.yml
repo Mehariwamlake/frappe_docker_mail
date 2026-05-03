@@ -96,6 +96,8 @@ jobs:
         with:
           repository: frappe/frappe_docker
           path: builds
+      - name: Normalize owner to lowercase
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -103,7 +105,9 @@ jobs:
           push: true
           context: builds
           file: builds/${{ inputs.dockerfile || env.DOCKERFILE }}
-          tags: ghcr.io/${{ github.repository_owner }}/${{ inputs.image || env.IMAGE }}:${{ inputs.version || env.VERSION }},ghcr.io/${{ github.repository_owner }}/${{ inputs.image || env.IMAGE }}:latest
+          tags: |
+            ghcr.io/${{ env.OWNER_LC }}/${{ inputs.image || env.IMAGE }}:${{ inputs.version || env.VERSION }}
+            ghcr.io/${{ env.OWNER_LC }}/${{ inputs.image || env.IMAGE }}:latest
           build-args: |
             "FRAPPE_PATH=${{ inputs.frappe-repo || env.FRAPPE_REPO }}"
             "FRAPPE_BRANCH=${{ inputs.frappe-version || env.FRAPPE_VERSION }}"

@@ -100,7 +100,7 @@ jobs:
           push: true
           context: builds
           file: builds/${{ inputs.dockerfile || env.DOCKERFILE }}
-          tags: ghcr.io/${{ github.repository }}/${{ inputs.image || env.IMAGE }}:${{ inputs.version || env.VERSION }},ghcr.io/${{ github.repository }}/${{ inputs.image || env.IMAGE }}:latest
+          tags: ghcr.io/$ mehariwamlake /${{ inputs.image || env.IMAGE }}:${{ inputs.version || env.VERSION }},ghcr.io/$ mehariwamlake/${{ inputs.image || env.IMAGE }}:latest
           build-args: |
             "FRAPPE_PATH=${{ inputs.frappe-repo || env.FRAPPE_REPO }}"
             "FRAPPE_BRANCH=${{ inputs.frappe-version || env.FRAPPE_VERSION }}"

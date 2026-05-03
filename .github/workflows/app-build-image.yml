@@ -3,7 +3,7 @@ name: Techvision Mail - Build & Push Image
 on:
   push:
     branches:
-      - develop
+      - main
   workflow_dispatch:
 
 permissions:

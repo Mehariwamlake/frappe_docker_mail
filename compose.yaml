@@ -3,7 +3,7 @@ version: "3.8"
 name: techvision-frappe
 
 x-customizable-image: &customizable_image
-  image: ${CUSTOM_IMAGE:-ghcr.io/mehariwamlake/mail}:${CUSTOM_TAG:-v1.0.0}
+  image: ${CUSTOM_IMAGE:-ghcr.io/mehariwamlake/frappe_docker_mail}:${CUSTOM_TAG:-1.0.2}
   pull_policy: ${PULL_POLICY:-always}
   restart: ${RESTART_POLICY:-unless-stopped}
 
@@ -56,6 +56,8 @@ services:
   backend:
     <<: *backend_defaults
     platform: linux/amd64
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
     networks:
       techvision-net:
         aliases:

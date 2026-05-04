@@ -8,7 +8,7 @@ COPY resources/core/nginx/security_headers.conf /etc/nginx/snippets/security_hea
 
 ARG WKHTMLTOPDF_VERSION=0.12.6.1-3
 ARG WKHTMLTOPDF_DISTRO=bookworm
-ARG NODE_VERSION=18.18.0
+ARG NODE_VERSION=20.19.0
 ENV NVM_DIR=/home/frappe/.nvm
 ENV PATH=${NVM_DIR}/versions/node/v${NODE_VERSION}/bin/:${PATH}
 
@@ -31,6 +31,11 @@ RUN useradd -ms /bin/bash frappe \
     # For backups
     restic \
     gpg \
+    default-libmysqlclient-dev \
+    build-essential \
+    pkg-config \
+    python3-dev \
+    && pip install --no-cache-dir mysqlclient \
     # MariaDB
     mariadb-client \
     less \

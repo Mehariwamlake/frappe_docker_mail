@@ -31,11 +31,6 @@ RUN useradd -ms /bin/bash frappe \
     # For backups
     restic \
     gpg \
-    default-libmysqlclient-dev \
-    build-essential \
-    pkg-config \
-    python3-dev \
-    && pip install --no-cache-dir mysqlclient \
     # MariaDB
     mariadb-client \
     less \
@@ -84,7 +79,7 @@ RUN useradd -ms /bin/bash frappe \
     && chown -R frappe:frappe /run/nginx.pid \
     && chmod 755 /usr/local/bin/nginx-entrypoint.sh \
     && chmod 644 /templates/nginx/frappe.conf.template
-
+RUN pip install --no-cache-dir mysqlclient
 
 FROM base AS builder
 

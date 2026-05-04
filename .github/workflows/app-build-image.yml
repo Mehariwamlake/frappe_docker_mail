@@ -14,8 +14,8 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/mehariwamlake/mail
   FRAPPE_REF: version-16
-  NODE_VERSION: 18.18.2
-  PYTHON_VERSION: 3.11.6
+  NODE_VERSION: 22.18.2
+  PYTHON_VERSION: 3.12
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:

@@ -45,7 +45,7 @@ services:
     networks:
       - bench-network
     ports:
-    - "8083:8080"
+    - "8085:8080"
     
     healthcheck:
       test:

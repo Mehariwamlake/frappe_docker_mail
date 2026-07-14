@@ -125,7 +125,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 USER frappe
 COPY ci/apps.json /opt/frappe/apps.json
 
-ARG FRAPPE_BRANCH=version-17
+ARG FRAPPE_BRANCH=develop
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 RUN export APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json" && \
   bench init ${APP_INSTALL_ARGS} \

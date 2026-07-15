@@ -6,8 +6,6 @@ on:
       - main
 
   workflow_dispatch:
-    
-    
     inputs:
       image:
         description: Image name

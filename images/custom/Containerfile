@@ -163,7 +163,6 @@ RUN /home/frappe/frappe-bench/env/bin/pip install --no-cache-dir --upgrade \
   pyOpenSSL \
   certifi
   
-
 FROM base AS backend
 
 USER frappe

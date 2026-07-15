@@ -27,8 +27,6 @@ RUN useradd -ms /bin/bash frappe \
     ansible  \
     requests \
     urllib3 \
-    cryptography \
-    pyOpenSSL \
     # weasyprint dependencies
     libpango-1.0-0 \
     libharfbuzz0b \

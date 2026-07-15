@@ -25,8 +25,6 @@ RUN useradd -ms /bin/bash frappe \
     sshpass \
     ansible-core \
     ansible  \
-    requests \
-    urllib3 \
     # weasyprint dependencies
     libpango-1.0-0 \
     libharfbuzz0b \

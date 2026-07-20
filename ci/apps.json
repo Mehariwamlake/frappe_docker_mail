@@ -3,5 +3,10 @@
   {
     "url": "https://github.com/Mehariwamlake/mail",
     "branch": "develop"
+  },
+  {
+    "url": "https://github.com/frappe/pilot",
+    "branch": "main"
   }
+
 ]

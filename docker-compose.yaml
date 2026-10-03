@@ -368,8 +368,6 @@ services:
       # ManageSieve
       - "4190:4190"
 
-      # Stalwart HTTPS/JMAP/admin
-      - "443:443"
 
       # Bootstrap/admin HTTP
       - "8087:8080"

@@ -45,13 +45,13 @@ services:
     networks:
       - bench-network
     ports:
-    - "8086:8080"
+    - "8086:8081"
     
     healthcheck:
       test:
         - CMD
         - wait-for-it
-        - '0.0.0.0:8080'
+        - '0.0.0.0:8081'
       interval: 2s
       timeout: 30s
       retries: 30
@@ -340,13 +340,61 @@ services:
       interval: 5s
       timeout: 5s
       retries: 3
+  stalwart:
+    image: stalwartlabs/stalwart:v0.16
+    restart: unless-stopped
 
+    environment:
+      STALWART_PUBLIC_URL: https://mailsrv.techvision.et
+
+    volumes:
+      - stalwart-etc:/etc/stalwart
+      - stalwart-data:/var/lib/stalwart
+
+    ports:
+      # SMTP
+      - "25:25"
+      - "465:465"
+      - "587:587"
+
+      # IMAP
+      - "143:143"
+      - "993:993"
+
+      # POP3, optional
+      - "110:110"
+      - "995:995"
+
+      # ManageSieve
+      - "4190:4190"
+
+      # Stalwart HTTPS/JMAP/admin
+      - "443:443"
+
+      # Bootstrap/admin HTTP
+      - "8087:8080"
+
+    networks:
+      - bench-network
+
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://127.0.0.1:8080/health
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 volumes:
   db-data:
   redis-cache-data:
   redis-queue-data:
   redis-socketio-data:
   sites:
+  stalwart-etc:
+  stalwart-data:
     driver_opts:
       type: "${SITE_VOLUME_TYPE}"
       o: "${SITE_VOLUME_OPTS}"
